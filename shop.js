@@ -11,6 +11,7 @@ function getBasket() {
 
 function getTotalItemCount(basket) {
   return Object.values(basket).reduce((sum, qty) => sum + qty, 0);
+  
 }
 
 function showBasketLimitError() {
