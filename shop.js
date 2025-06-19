@@ -9,13 +9,59 @@ function getBasket() {
   return basket ? JSON.parse(basket) : {};
 }
 
+function getTotalItemCount(basket) {
+  return Object.values(basket).reduce((sum, qty) => sum + qty, 0);
+  
+}
+
+function showBasketLimitError() {
+  let errorBox = document.querySelector(".basket-error");
+  if (!errorBox) {
+    errorBox = document.createElement("div");
+    errorBox.className = "basket-error";
+    errorBox.style.color = "red";
+    errorBox.style.marginTop = "10px";
+    errorBox.style.fontWeight = "bold";
+    document.body.appendChild(errorBox);
+  }
+  errorBox.textContent = "Your basket is full. You cannot add more than 10 items.";
+  errorBox.style.display = "block";
+  setTimeout(() => {
+    errorBox.style.display = "none";
+  }, 3000);
+}
+
+function updateAddButtonsState() {
+  const basket = getBasket();
+  const totalCount = getTotalItemCount(basket);
+  const addButtons = document.querySelectorAll(".add-to-basket");
+
+  addButtons.forEach((btn) => {
+    if (totalCount >= 10) {
+      btn.disabled = true;
+      btn.title = "Basket full – cannot add more than 10 items.";
+    } else {
+      btn.disabled = false;
+      btn.title = "";
+    }
+  });
+}
+
 function addToBasket(product) {
   const basket = getBasket();
+  const totalCount = getTotalItemCount(basket);
+
+  if (totalCount >= 10) {
+    showBasketLimitError();
+    return;
+  }
+
   if (basket[product]) {
     basket[product] += 1;
   } else {
     basket[product] = 1;
   }
+
   localStorage.setItem("basket", JSON.stringify(basket));
 }
 
@@ -52,8 +98,7 @@ function renderBasket() {
 
 function renderBasketIndicator() {
   const basket = getBasket();
-  let totalItems = 0;
-  Object.values(basket).forEach((qty) => totalItems += qty);
+  let totalItems = getTotalItemCount(basket);
 
   let indicator = document.querySelector(".basket-indicator");
   if (!indicator) {
@@ -72,10 +117,10 @@ function renderBasketIndicator() {
   }
 }
 
-// Call this on page load and after basket changes
 function initializeBasketUI() {
   renderBasketIndicator();
   renderBasket();
+  updateAddButtonsState();
 }
 
 if (document.readyState !== "loading") {
@@ -85,16 +130,18 @@ if (document.readyState !== "loading") {
 }
 
 // Patch basket functions to update UI
-const origAddToBasket = window.addToBasket;
+const origAddToBasket = window.addToBasket || addToBasket;
 window.addToBasket = function (product) {
   origAddToBasket(product);
   renderBasketIndicator();
   renderBasket();
+  updateAddButtonsState();
 };
 
-const origClearBasket = window.clearBasket;
+const origClearBasket = window.clearBasket || clearBasket;
 window.clearBasket = function () {
   origClearBasket();
   renderBasketIndicator();
   renderBasket();
+  updateAddButtonsState();
 };
